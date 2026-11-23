@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url><loc>https://havenbuilders000.com/</loc><lastmod>2026-11-23</lastmod><changefreq>monthly</changefreq><priority>1.0</priority>
+    <image:image><image:loc>https://havenbuilders000.com/img/og-haven-builders.jpg</image:loc></image:image></url>
+  <url><loc>https://havenbuilders000.com/services.html</loc><lastmod>2026-11-23</lastmod><changefreq>monthly</changefreq><priority>0.9</priority>
+    <image:image><image:loc>https://havenbuilders000.com/img/contact-villa-1920.webp</image:loc></image:image></url>
+  <url><loc>https://havenbuilders000.com/team.html</loc><lastmod>2026-11-23</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <image:image><image:loc>https://havenbuilders000.com/img/team-haven-family-hd-2400.webp</image:loc></image:image></url>
+</urlset>
