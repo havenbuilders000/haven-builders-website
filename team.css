@@ -435,7 +435,7 @@
     .tm-cta-btn { width: 100%; justify-content: center; }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 0px) {
     .tm-hero-grid, .tm-hero-orb { animation: none; }
     .tm-js .tm-anim, .tm-js .tm-hw, .tm-js .tm-crumbs, .tm-js .tm-eyebrow, .tm-js .tm-hero-lead,
     .tm-js .tm-chips.tm-anim li { opacity: 1 !important; transform: none !important; }
@@ -492,4 +492,9 @@
 @media (max-width:640px){
   .tm-group-frame{ inset:-8px 8px 8px -8px; border-radius:18px; }
   .tm-group-inner{ border-radius:16px; }
+}
+
+/* Phones: same team animations, a little quicker */
+@media (max-width: 768px){
+  .tm-js .tm-anim, .tm-js .tm-photo.tm-anim .tm-photo-inner, .tm-js .tm-photo.tm-anim img, .tm-js .tm-photo.tm-anim .tm-photo-frame{ transition-duration: .65s !important; }
 }

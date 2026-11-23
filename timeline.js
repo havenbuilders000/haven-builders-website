@@ -55,7 +55,7 @@
     // Portion of the pinned track that plays frames; the rest is a hold on the final frame.
     const ANIM_END = 0.9;
     // Smoothness & camera
-    const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const REDUCED_MOTION = window.matchMedia('(max-width: 0px)').matches;
     const SMOOTHING_MS = 85;      // easing time constant for scroll-follow
     const CAMERA_ZOOM = REDUCED_MOTION ? 0 : 0.06;   // slow push-in over the timeline
     const CAMERA_DRIFT = REDUCED_MOTION ? 0 : 0.012; // slight upward drift (fraction of height)

@@ -9,7 +9,7 @@
  */
 (function () {
     'use strict';
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(max-width: 0px)').matches) return;
 
     const onReady = (fn) => (document.readyState === 'loading'
         ? document.addEventListener('DOMContentLoaded', fn) : fn());

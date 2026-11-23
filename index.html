@@ -250,7 +250,7 @@
         (function () {
             try {
                 // logo intro plays on every page load / refresh
-                if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                if (!window.matchMedia('(max-width: 0px)').matches) {
                     document.documentElement.classList.add('intro-active');
                 }
             } catch (e) {}
@@ -258,7 +258,7 @@
     </script>
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=145">
+    <link rel="stylesheet" href="styles.css?v=146">
 
     <!-- First hero frame, fetched early for a fast first paint -->
     <script>
@@ -1297,8 +1297,8 @@
     </button>
 
     <!-- JavaScript Files -->
-    <script src="timeline.js?v=145" defer></script>
-    <script src="app.js?v=145" defer></script>
-    <script src="turn.js?v=145" defer></script>
+    <script src="timeline.js?v=146" defer></script>
+    <script src="app.js?v=146" defer></script>
+    <script src="turn.js?v=146" defer></script>
 </body>
 </html>

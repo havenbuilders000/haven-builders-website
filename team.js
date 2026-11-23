@@ -1,7 +1,7 @@
 /* Haven Builders — Our Team page: hero entrance, scroll reveals, portrait tilt */
 (function () {
     'use strict';
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = window.matchMedia('(max-width: 0px)').matches;
     const root = document.documentElement;
 
     const run = () => {

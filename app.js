@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Why Choose Us: staged entrance + cursor-following colour spotlight
     const whySection = document.getElementById('why-us');
     if (whySection) {
-        if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if ('IntersectionObserver' in window && !window.matchMedia('(max-width: 0px)').matches) {
             whySection.classList.add('wy-anim');
             const wyObs = new IntersectionObserver((entries, obs) => {
                 if (entries[0].isIntersecting) {
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Premium Scroll Animations, Card Reveals & Parallax Engine
  */
 function initScrollAnimations() {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = window.matchMedia('(max-width: 0px)').matches;
 
     // 1. Hero Entrance Animations
     setTimeout(() => {
@@ -655,7 +655,7 @@ function initVideoTestimonials() {
     const track = document.getElementById('vtTrack');
     if (!viewport || !track) return;
 
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = window.matchMedia('(max-width: 0px)').matches;
     const SPEED = 0.45;            // px per frame (~27px/s at 60fps)
     let paused = false;
     let visible = false;
@@ -834,7 +834,7 @@ function initServicesShowcase() {
     const dots = Array.from(root.querySelectorAll('.svx-dot'));
     const stageLink = document.getElementById('svxStageLink');
     const bar = document.getElementById('svxProgress');
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = window.matchMedia('(max-width: 0px)').matches;
     const mobile = window.matchMedia('(max-width: 1024px)');
     const CYCLE_MS = 4500;
     let current = 0;
@@ -988,7 +988,7 @@ function escapeHtml(string) {
     const run = () => {
         const box = document.getElementById('aboutVisuals');
         if (!box) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (window.matchMedia('(max-width: 0px)').matches) return;
         if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
         let raf = 0, tx = 0, ty = 0;
         const apply = () => {
@@ -1016,7 +1016,7 @@ function escapeHtml(string) {
     const run = () => {
         const box = document.getElementById('fdrPortrait');
         if (!box) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (window.matchMedia('(max-width: 0px)').matches) return;
         if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
         let raf = 0, tx = 0, ty = 0;
         const apply = () => {
@@ -1046,7 +1046,7 @@ function escapeHtml(string) {
         const flash = document.getElementById('heroLightning');
         const stage = document.getElementById('heroStickyViewport');
         if (!canvas || !stage) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (window.matchMedia('(max-width: 0px)').matches) return;
 
         const ctx = canvas.getContext('2d');
         let w = 0, h = 0, dpr = 1, drops = [], splashes = [], bolt = null;
@@ -1193,7 +1193,7 @@ function escapeHtml(string) {
         const root = document.getElementById('sxp');
         if (!root) return;
         const panels = Array.from(root.querySelectorAll('.sxp-panel'));
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reduce = window.matchMedia('(max-width: 0px)').matches;
         const mobile = () => window.matchMedia('(max-width: 860px)').matches;
         const DUR = 5000;
         let active = 0, timer = 0, inView = false, hovering = false, userTouched = false;
@@ -1285,7 +1285,7 @@ function escapeHtml(string) {
         const shots = Array.from(root.querySelectorAll('.sv4-shot'));
         const cur = root.querySelector('.sv4-cur');
         const desktop = () => window.matchMedia('(min-width: 901px)').matches;
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reduce = window.matchMedia('(max-width: 0px)').matches;
         let active = 0, timer = 0, inView = false, hovering = false, touched = false;
 
         const set = (i) => {

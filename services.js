@@ -8,7 +8,7 @@
 (function () {
     'use strict';
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduceMotion = window.matchMedia('(max-width: 0px)').matches;
     const root = document.documentElement;
 
     function onReady(fn) {
