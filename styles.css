@@ -12392,3 +12392,6 @@ html.intro-exit .site-intro__inner{ opacity:0; transform:scale(.96); transition:
   .ceo-feature.ceo-anim .ceo-message > :nth-child(6){ transition-delay: .6s !important; }
   .hero-v2 .ht-line .ht-inner{ animation-duration: .9s !important; animation-delay: calc(0.05s + var(--i) * 0.09s) !important; }
 }
+
+/* Speed: sections below the hero are only rendered when they come near the screen */
+main > section.section{ content-visibility:auto; contain-intrinsic-size:auto 900px; }

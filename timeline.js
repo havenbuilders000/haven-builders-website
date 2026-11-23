@@ -223,6 +223,7 @@
                 status[idx] = 1;
                 readyCount++;
                 updateBuffer();
+                if (BMP_OK) bmpPump();
                 // Redraw if this frame is a better match for what should be on screen.
                 if (advanceContig() || Math.abs(idx - currentFrame) <= 6 * FRAME_STRIDE) scheduleRender(true);
             } else {
@@ -295,8 +296,75 @@
 
     // (decoded-bitmap cache removed: createImageBitmap from <img> decodes on the main
     //  thread in Chrome and caused dropped frames; img.decode() at load is enough)
-    function paintable(idx) { return frames[idx]; }
-    function refreshBitmaps() {}
+    // Decoded-bitmap window: frames near the playhead are decoded OFF the main thread
+    // (createImageBitmap from the file data) so scrubbing never stalls on image decoding.
+    // Only a small window is kept in memory; everything else stays compressed.
+    const BMP_OK = typeof createImageBitmap === 'function' && typeof fetch === 'function' && typeof Map === 'function';
+    const BMP_AHEAD = 26 * FRAME_STRIDE, BMP_BEHIND = 8 * FRAME_STRIDE, BMP_PAR = 2;
+    const bitmaps = new Map();
+    const bmpPending = new Set();
+    let bmpActive = 0, bmpCenter = 1, bmpDir = 1, bmpGen = 0;
+    function bmpWanted(i) {
+        return bmpDir >= 0 ? (i >= bmpCenter - BMP_BEHIND && i <= bmpCenter + BMP_AHEAD)
+                           : (i <= bmpCenter + BMP_BEHIND && i >= bmpCenter - BMP_AHEAD);
+    }
+    function refreshBitmaps(center) {
+        if (!BMP_OK) return;
+        if (center && center !== bmpCenter) { bmpDir = center > bmpCenter ? 1 : -1; bmpCenter = center; }
+        for (const [i, b] of bitmaps) if (!bmpWanted(i)) { if (b.close) b.close(); bitmaps.delete(i); }
+        bmpPump();
+    }
+    function clearBitmaps() {
+        bmpGen++;
+        for (const b of bitmaps.values()) if (b.close) b.close();
+        bitmaps.clear();
+    }
+    function bmpPump() {
+        while (bmpActive < BMP_PAR) {
+            let pick = 0;
+            for (let d = 0; d <= BMP_AHEAD && !pick; d++) {
+                const cand = d === 0 ? [bmpCenter] : [bmpCenter + d * bmpDir, bmpCenter - d * bmpDir];
+                for (const i of cand) {
+                    if (i >= 1 && i <= TOTAL_FRAMES && status[i] === 1 && !bitmaps.has(i) && !bmpPending.has(i) && bmpWanted(i)) { pick = i; break; }
+                }
+            }
+            if (!pick) return;
+            decodeBitmap(pick);
+        }
+    }
+    function decodeBitmap(i) {
+        const img = frames[i];
+        if (!img) return;
+        bmpActive++; bmpPending.add(i);
+        const gen = bmpGen;
+        const tw = canvasEl ? canvasEl.width : 0, th = canvasEl ? canvasEl.height : 0;
+        fetch(img.currentSrc || img.src)
+            .then((r) => r.blob())
+            .then((blob) => {
+                const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
+                const s = Math.min(1, Math.max(tw / iw, th / ih) * (1 + CAMERA_ZOOM));
+                return (s < 0.95 && tw && th)
+                    ? createImageBitmap(blob, { resizeWidth: Math.round(iw * s), resizeHeight: Math.round(ih * s), resizeQuality: 'medium' })
+                    : createImageBitmap(blob);
+            })
+            .then((bmp) => {
+                if (gen !== bmpGen || !bmpWanted(i)) { if (bmp.close) bmp.close(); return; }
+                bitmaps.set(i, bmp);
+                if (Math.abs(i - currentFrame) <= 6 * FRAME_STRIDE) scheduleRender(true);
+            })
+            .catch(() => {})
+            .then(() => { bmpActive--; bmpPending.delete(i); bmpPump(); });
+    }
+    function paintable(idx) { return bitmaps.get(idx) || frames[idx]; }
+    // nearest DECODED frames around a position (falls back to plain loaded frames when none yet)
+    function decodedBelow(i) {
+        for (let k = Math.min(i, TOTAL_FRAMES); k >= Math.max(1, i - 12 * FRAME_STRIDE); k--) if (bitmaps.has(k)) return k;
+        return 0;
+    }
+    function decodedAbove(i) {
+        for (let k = Math.max(i, 1); k <= Math.min(TOTAL_FRAMES, i + 12 * FRAME_STRIDE); k++) if (bitmaps.has(k)) return k;
+        return 0;
+    }
 
     function drawCover(img, alpha, zoom, driftY) {
         const cw = canvasEl.width;
@@ -335,6 +403,14 @@
 
         let lo = loadedBelow(Math.floor(exact));
         let hi = loadedAbove(Math.ceil(exact));
+        if (BMP_OK) {
+            // Only ever paint frames that are already decoded, so drawing never blocks the page.
+            // If the playhead is ahead of the decoder, keep the current picture for a moment
+            // while it catches up (it is already working on this position).
+            const dlo = decodedBelow(Math.floor(exact)), dhi = decodedAbove(Math.ceil(exact));
+            if (dlo || dhi) { lo = dlo; hi = dhi; }
+            else if (lastDrawnImg) { refreshBitmaps(Math.round(exact)); return; }
+        }
         let t = 0;
         if (lo && hi && hi !== lo) {
             t = clamp((exact - lo) / (hi - lo), 0, 1);
@@ -528,8 +604,10 @@
         const need = Math.max(tw / srcW, th / srcH);       // how much the frame is upscaled
         if (need > 1.12) { const f = 1.12 / need; tw = Math.round(tw * f); th = Math.round(th * f); }
         if (canvasEl.width !== tw || canvasEl.height !== th) {
+            const grew = tw > canvasEl.width * 1.05 || th > canvasEl.height * 1.05;
             canvasEl.width = tw;
             canvasEl.height = th;
+            if (grew && BMP_OK) { clearBitmaps(); bmpPump(); }
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'medium';
             lastDrawnImg = null;
