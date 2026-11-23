@@ -35,7 +35,10 @@
     })();
     // phones cap at the 1600px set to keep mobile data reasonable
     // live site: 1280px set for phones/small laptops, 1600px set for everything larger
-    const SET = NEED_PX <= 1350 ? 'm' : 'd';
+    // Portrait phones/tablets only ever show the middle of the 16:9 film, so they get a
+    // pre-cropped 750x900 WebP set: half the pixels to decode, which keeps scrolling smooth.
+    const PORTRAIT = (window.innerWidth / Math.max(1, window.innerHeight)) < 0.85 && window.innerWidth <= 1024;
+    const SET = PORTRAIT ? 'p' : (NEED_PX <= 1350 ? 'm' : 'd');
     // AVIF frames are ~45% lighter than WebP at the same look; browsers without AVIF get WebP.
     const AVIF_OK = (() => {
         try {
@@ -44,9 +47,9 @@
         } catch (e) { return false; }
     })() || /Chrome\/(8[5-9]|9\d|1\d\d)|Firefox\/(9[3-9]|1\d\d)|Version\/(1[6-9]|2\d).*Safari/.test(navigator.userAgent);
     // (the largest 1920px set stays WebP; AVIF is used for the phone/laptop sets)
-    const USE_AVIF = AVIF_OK;
+    const USE_AVIF = AVIF_OK && !PORTRAIT;
     // Only the light WebP set is published as a fallback for the rare browser without AVIF.
-    let IMAGE_FOLDER = USE_AVIF ? `frames/a${SET}/` : `frames/m/`;
+    let IMAGE_FOLDER = PORTRAIT ? 'frames/p/' : (USE_AVIF ? `frames/a${SET}/` : `frames/m/`);
     let IMAGE_EXT = USE_AVIF ? '.avif' : '.webp';
     const WEBP_URL = (i) => `frames/m/f-${String(i).padStart(3, '0')}.webp`;
     const IMAGE_PREFIX = 'f-';
@@ -601,8 +604,8 @@
         let th = Math.round(h * dpr);
         // Cap to what the frames can actually show (cover-fit + camera zoom); anything larger
         // just costs fill-rate on every frame without adding detail.
-        const srcW = ({ m: 1280, d: 1600, h: 1920 })[SET] || 1920;
-        const srcH = Math.round(srcW * 9 / 16);
+        const srcW = ({ p: 750, m: 1280, d: 1600, h: 1920 })[SET] || 1920;
+        const srcH = SET === 'p' ? 900 : Math.round(srcW * 9 / 16);
         const need = Math.max(tw / srcW, th / srcH);       // how much the frame is upscaled
         if (need > 1.12) { const f = 1.12 / need; tw = Math.round(tw * f); th = Math.round(th * f); }
         if (canvasEl.width !== tw || canvasEl.height !== th) {

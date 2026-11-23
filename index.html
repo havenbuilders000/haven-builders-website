@@ -258,7 +258,7 @@
     </script>
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=150">
+    <link rel="stylesheet" href="styles.css?v=151">
 
     <!-- First hero frame, fetched early for a fast first paint -->
     <script>
@@ -270,13 +270,14 @@
                 var hh = Math.max(window.innerHeight, window.screen ? Math.min(window.screen.height, window.innerHeight * 1.25) : 0) * dpr;
                 var need = Math.max(w, hh * 16 / 9);
                 var small = window.matchMedia('(max-width: 900px)').matches;
+                var portrait = (window.innerWidth / Math.max(1, window.innerHeight)) < 0.85 && window.innerWidth <= 1024;
                 var set = need <= 1350 ? 'm' : 'd';
                 var c = document.createElement('canvas');
                 var avif = (c.toDataURL && c.toDataURL('image/avif').indexOf('data:image/avif') === 0) ||
                     /Chrome\/(8[5-9]|9\d|1\d\d)|Firefox\/(9[3-9]|1\d\d)|Version\/(1[6-9]|2\d).*Safari/.test(navigator.userAgent);
                 var l = document.createElement('link');
                 l.rel = 'preload'; l.as = 'image'; l.setAttribute('fetchpriority', 'high');
-                l.href = avif ? 'frames/a' + set + '/f-001.avif' : 'frames/m/f-001.webp';
+                l.href = portrait ? 'frames/p/f-001.webp' : (avif ? 'frames/a' + set + '/f-001.avif' : 'frames/m/f-001.webp');
                 document.head.appendChild(l);
             } catch (e) {}
         })();
@@ -1297,8 +1298,8 @@
     </button>
 
     <!-- JavaScript Files -->
-    <script src="timeline.js?v=150" defer></script>
-    <script src="app.js?v=150" defer></script>
-    <script src="turn.js?v=150" defer></script>
+    <script src="timeline.js?v=151" defer></script>
+    <script src="app.js?v=151" defer></script>
+    <script src="turn.js?v=151" defer></script>
 </body>
 </html>
