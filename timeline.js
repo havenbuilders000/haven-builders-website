@@ -34,7 +34,8 @@
         return Math.max(w, h * 16 / 9);
     })();
     // phones cap at the 1600px set to keep mobile data reasonable
-    const SET = NEED_PX <= 1350 ? 'm' : ((NEED_PX <= 1650 || SMALL_SCREEN) ? 'd' : 'h');
+    // live site: 1280px set for phones/small laptops, 1600px set for everything larger
+    const SET = NEED_PX <= 1350 ? 'm' : 'd';
     // AVIF frames are ~45% lighter than WebP at the same look; browsers without AVIF get WebP.
     const AVIF_OK = (() => {
         try {
@@ -44,9 +45,10 @@
     })() || /Chrome\/(8[5-9]|9\d|1\d\d)|Firefox\/(9[3-9]|1\d\d)|Version\/(1[6-9]|2\d).*Safari/.test(navigator.userAgent);
     // (the largest 1920px set stays WebP; AVIF is used for the phone/laptop sets)
     const USE_AVIF = AVIF_OK;
-    let IMAGE_FOLDER = USE_AVIF ? `frames/a${SET}/` : `frames/${SET}/`;
+    // Only the light WebP set is published as a fallback for the rare browser without AVIF.
+    let IMAGE_FOLDER = USE_AVIF ? `frames/a${SET}/` : `frames/m/`;
     let IMAGE_EXT = USE_AVIF ? '.avif' : '.webp';
-    const WEBP_URL = (i) => `frames/${SET}/f-${String(i).padStart(3, '0')}.webp`;
+    const WEBP_URL = (i) => `frames/m/f-${String(i).padStart(3, '0')}.webp`;
     const IMAGE_PREFIX = 'f-';
     const FALLBACK_URL = (i) => `Hero%20section/Images/ezgif-frame-${String(i).padStart(3, '0')}.png`;
 
@@ -239,7 +241,7 @@
         const tryFallback = () => {
             if (IMAGE_EXT === '.avif' && !img.dataset.webp) {
                 img.dataset.webp = '1';
-                IMAGE_FOLDER = `frames/${SET}/`; IMAGE_EXT = '.webp';   // AVIF not supported here: switch to WebP
+                IMAGE_FOLDER = `frames/m/`; IMAGE_EXT = '.webp';   // AVIF not supported here: switch to WebP
                 img.src = WEBP_URL(idx);
             } else if (!img.dataset.fallback) {
                 img.dataset.fallback = '1';
