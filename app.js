@@ -1039,6 +1039,124 @@ function escapeHtml(string) {
     else run();
 })();
 
+
+/* Hero storm sound: rain + thunder, synthesised with Web Audio (no audio files to download).
+   Plays only while the rain scene is on screen. Browsers allow sound only after the visitor
+   taps/clicks/presses a key once; the speaker button turns it on/off and the choice is remembered. */
+window.HBStorm = (function () {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const btn = document.getElementById('heroSound');
+    if (!AC) { if (btn) btn.hidden = true; return { setActive() {}, thunder() {} }; }
+    let ctx = null, master = null, rainGain = null, started = false;
+    let active = false;
+    let enabled = (() => { try { return localStorage.getItem('hbStormSound') !== 'off'; } catch (e) { return true; } })();
+    let unlocked = false;
+
+    function noiseBuffer(seconds, brown) {
+        const len = Math.floor(ctx.sampleRate * seconds);
+        const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+            const d = buf.getChannelData(ch); let last = 0;
+            for (let i = 0; i < len; i++) {
+                const white = Math.random() * 2 - 1;
+                if (brown) { last = (last + 0.02 * white) / 1.02; d[i] = last * 3.5; } else d[i] = white;
+            }
+        }
+        return buf;
+    }
+    function build() {
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+        rainGain = ctx.createGain(); rainGain.gain.value = 0; rainGain.connect(master);
+        // hiss of the rain
+        const hiss = ctx.createBufferSource(); hiss.buffer = noiseBuffer(3, false); hiss.loop = true;
+        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7500;
+        const hissG = ctx.createGain(); hissG.gain.value = 0.16;
+        hiss.connect(hp); hp.connect(lp); lp.connect(hissG); hissG.connect(rainGain);
+        // body / roof patter
+        const body = ctx.createBufferSource(); body.buffer = noiseBuffer(4, true); body.loop = true;
+        const blp = ctx.createBiquadFilter(); blp.type = 'lowpass'; blp.frequency.value = 650;
+        const bodyG = ctx.createGain(); bodyG.gain.value = 0.32;
+        body.connect(blp); blp.connect(bodyG); bodyG.connect(rainGain);
+        // slow gusts
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.13;
+        const lfoG = ctx.createGain(); lfoG.gain.value = 0.05; lfo.connect(lfoG); lfoG.connect(hissG.gain);
+        hiss.start(); body.start(); lfo.start();
+        started = true;
+    }
+    function apply() {
+        const on = active && enabled && unlocked;
+        if (btn) {
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            btn.setAttribute('aria-label', on ? 'Turn storm sound off' : 'Turn storm sound on');
+            btn.classList.toggle('is-on', enabled && unlocked);
+            const i = btn.querySelector('i'); if (i) i.className = 'fa-solid ' + (enabled && unlocked ? 'fa-volume-high' : 'fa-volume-xmark');
+            const t = btn.querySelector('.hero-sound__txt'); if (t) t.textContent = !unlocked ? 'Tap for sound' : (enabled ? 'Sound on' : 'Sound off');
+        }
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        rainGain.gain.cancelScheduledValues(now);
+        rainGain.gain.setValueAtTime(rainGain.gain.value, now);
+        rainGain.gain.linearRampToValueAtTime(on ? 1 : 0, now + (on ? 1.6 : 0.9));
+        if (on && ctx.state === 'suspended') ctx.resume();
+    }
+    function unlock() {
+        if (unlocked) return;
+        unlocked = true;
+        if (!ctx) build();
+        if (ctx.state === 'suspended') ctx.resume();
+        apply();
+    }
+    ['pointerdown', 'touchstart', 'keydown'].forEach((ev) => window.addEventListener(ev, (e) => { if (enabled && !(btn && btn.contains(e.target))) unlock(); }, { passive: true }));
+    if (btn) btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!unlocked) { enabled = true; unlock(); }
+        else enabled = !enabled;
+        try { localStorage.setItem('hbStormSound', enabled ? 'on' : 'off'); } catch (err) {}
+        apply();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (!ctx) return;
+        if (document.hidden) ctx.suspend(); else if (active && enabled && unlocked) ctx.resume();
+    });
+
+    function thunder(xFrac) {
+        if (!(active && enabled && unlocked && ctx && started)) return;
+        const t0 = ctx.currentTime + 0.25 + Math.random() * 0.9;   // sound arrives just after the flash
+        const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+        if (pan) pan.pan.value = Math.max(-0.8, Math.min(0.8, (xFrac - 0.5) * 1.6));
+        const out = ctx.createGain(); out.gain.value = 1;
+        if (pan) { out.connect(pan); pan.connect(master); } else out.connect(master);
+        // sharp crack
+        const crack = ctx.createBufferSource(); crack.buffer = noiseBuffer(0.6, false);
+        const cf = ctx.createBiquadFilter(); cf.type = 'bandpass'; cf.frequency.value = 1800; cf.Q.value = 0.7;
+        const cg = ctx.createGain();
+        cg.gain.setValueAtTime(0, t0); cg.gain.linearRampToValueAtTime(0.55, t0 + 0.01); cg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
+        crack.connect(cf); cf.connect(cg); cg.connect(out); crack.start(t0); crack.stop(t0 + 0.6);
+        // long rolling rumble
+        const dur = 3.5 + Math.random() * 2.5;
+        const rum = ctx.createBufferSource(); rum.buffer = noiseBuffer(dur + 0.5, true);
+        const rf = ctx.createBiquadFilter(); rf.type = 'lowpass'; rf.frequency.setValueAtTime(420, t0); rf.frequency.exponentialRampToValueAtTime(90, t0 + dur);
+        const rg = ctx.createGain();
+        rg.gain.setValueAtTime(0, t0);
+        rg.gain.linearRampToValueAtTime(1.1, t0 + 0.08);
+        let t = t0 + 0.08, v = 1.1;
+        while (t < t0 + dur - 0.4) {                     // uneven rolls
+            t += 0.25 + Math.random() * 0.5; v *= 0.62 + Math.random() * 0.45;
+            rg.gain.linearRampToValueAtTime(Math.max(0.05, v), t);
+        }
+        rg.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        rum.connect(rf); rf.connect(rg); rg.connect(out); rum.start(t0); rum.stop(t0 + dur + 0.2);
+    }
+
+    apply();
+    return {
+        setActive(on) { active = on; if (btn) btn.classList.toggle('is-visible', on); apply(); },
+        thunder
+    };
+})();
+
 /* Hero final frame: rain + thunderstorm (runs only while the finished villa is shown) */
 (function () {
     const run = () => {
@@ -1102,6 +1220,7 @@ function escapeHtml(string) {
                 flash.classList.add('is-flash');
             }
             nextStrike = now + 3500 + Math.random() * 5500;
+            if (window.HBStorm) window.HBStorm.thunder(bolt.x / Math.max(1, w));
         };
 
         const frame = (now) => {
@@ -1170,6 +1289,7 @@ function escapeHtml(string) {
             const on = stage.classList.contains('hero-final-on');
             if (on === active) return;
             active = on;
+            if (window.HBStorm) window.HBStorm.setActive(on);
             if (active) {
                 if (!w) resize();
                 last = 0;
