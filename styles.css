@@ -12395,3 +12395,69 @@ html.intro-exit .site-intro__inner{ opacity:0; transform:scale(.96); transition:
 
 /* Speed: sections below the hero are only rendered when they come near the screen */
 main > section.section{ content-visibility:auto; contain-intrinsic-size:auto 900px; }
+
+/* ===== Logo intro: GPU-only motion (opacity / transform) so it never drops frames ===== */
+html.intro-active .site-intro, html.intro-exit .site-intro{ will-change: opacity; }
+.site-intro__logo{
+  clip-path:none !important; filter:none !important;
+  opacity:0; transform:translateY(18px) scale(.94);
+  animation:introRiseGpu .8s cubic-bezier(.22,1,.36,1) .05s forwards !important;
+  will-change:transform, opacity;
+}
+@keyframes introRiseGpu{ to{ opacity:1; transform:none; } }
+.site-intro__shine{
+  mix-blend-mode:normal !important; background:none !important; opacity:1 !important;
+  animation:none !important; overflow:hidden;
+}
+.site-intro__shine::before{
+  content:""; position:absolute; top:0; bottom:0; left:-60%; width:60%;
+  background:linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 100%);
+  transform:translateX(0); opacity:0;
+  animation:introShineGpu .75s ease-in-out .6s forwards;
+  will-change:transform, opacity;
+}
+@keyframes introShineGpu{ 0%{ opacity:1; transform:translateX(0); } 100%{ opacity:1; transform:translateX(330%); } }
+.site-intro__line{ will-change:transform; }
+.site-intro__tag{
+  animation:introTagGpu .6s cubic-bezier(.22,1,.36,1) .6s forwards !important;
+  letter-spacing:.3em !important; margin-right:-.3em !important;
+  opacity:0; transform:translateY(8px); will-change:transform, opacity;
+}
+@media (max-width:640px){ .site-intro__tag{ letter-spacing:.22em !important; margin-right:-.22em !important; } }
+@keyframes introTagGpu{ to{ opacity:1; transform:none; } }
+html.intro-exit .site-intro__inner{ will-change:transform, opacity; }
+/* the hero canvas gets its own GPU layer so drawing frames never repaints the page */
+.hero-timeline-track canvas{ will-change:transform; transform:translateZ(0); }
+
+/* ===== Hero headline: same "outline → fill" look, GPU-only (no per-frame repaint) =====
+   The word itself is the outline; its fill is a copy (::after) that fades in on top. */
+.hero-v2 .ht-word{ clip-path:none !important; animation:none !important; overflow:visible !important; }
+.hero-v2 .ht-line .ht-inner{
+  position:relative; display:inline-block;
+  color:transparent !important; background:none !important;
+  -webkit-text-stroke:1.5px rgba(255,255,255,.95);
+  animation-name:htRiseGpu !important; animation-duration:.9s !important;
+  animation-timing-function:cubic-bezier(.22,1,.36,1) !important;
+  animation-delay:calc(0.05s + var(--i) * 0.12s) !important; animation-fill-mode:both !important;
+  will-change:transform, opacity;
+}
+.hero-intro-overlay .ht-line--accent .ht-inner{ -webkit-text-stroke:1.5px #E3BD62; }
+html body .hero-v2 .ht-line .ht-inner::after{
+  content:attr(data-text) !important; display:block !important;
+  position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none;
+  color:#fff; -webkit-text-stroke:0; background:none; text-shadow:none; filter:none; mix-blend-mode:normal;
+  opacity:0; animation:htFillGpu .7s ease calc(0.45s + var(--i) * 0.12s) forwards !important;
+  will-change:opacity; padding:inherit; margin:0; transform:none; clip-path:none;
+}
+html body .hero-intro-overlay .ht-line--accent .ht-inner::after{
+  color:transparent; background:linear-gradient(100deg,#F6E2A6 0%,#E3BD62 35%,#C9973D 70%,#9E6E24 100%) !important;
+  -webkit-background-clip:text !important; background-clip:text !important; background-size:100% 100% !important;
+}
+@keyframes htRiseGpu{ from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:none; } }
+@keyframes htFillGpu{ to{ opacity:1; } }
+html.intro-active .hero-v2 .ht-line .ht-inner,
+html.intro-active .hero-v2 .ht-line .ht-inner::after{ animation-play-state:paused !important; }
+@media (max-width:768px){
+  .hero-v2 .ht-line .ht-inner{ animation-duration:.75s !important; animation-delay:calc(0.05s + var(--i) * 0.09s) !important; }
+  html body .hero-v2 .ht-line .ht-inner::after{ animation-duration:.55s !important; animation-delay:calc(0.35s + var(--i) * 0.09s) !important; }
+}

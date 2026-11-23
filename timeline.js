@@ -300,7 +300,9 @@
     // (createImageBitmap from the file data) so scrubbing never stalls on image decoding.
     // Only a small window is kept in memory; everything else stays compressed.
     const BMP_OK = typeof createImageBitmap === 'function' && typeof fetch === 'function' && typeof Map === 'function';
-    const BMP_AHEAD = 26 * FRAME_STRIDE, BMP_BEHIND = 8 * FRAME_STRIDE, BMP_PAR = 2;
+    const LOW_MEM = (navigator.deviceMemory || 8) <= 3;
+    const BMP_AHEAD = (LOW_MEM ? 22 : 36) * FRAME_STRIDE, BMP_BEHIND = 8 * FRAME_STRIDE;
+    const BMP_PAR = (navigator.hardwareConcurrency || 4) >= 6 ? 3 : 2;
     const bitmaps = new Map();
     const bmpPending = new Set();
     let bmpActive = 0, bmpCenter = 1, bmpDir = 1, bmpGen = 0;
