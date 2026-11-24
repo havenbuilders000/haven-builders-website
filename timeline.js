@@ -38,7 +38,12 @@
     // Portrait phones/tablets only ever show the middle of the 16:9 film, so they get a
     // pre-cropped 750x900 WebP set: half the pixels to decode, which keeps scrolling smooth.
     const PORTRAIT = (window.innerWidth / Math.max(1, window.innerHeight)) < 0.85 && window.innerWidth <= 1024;
-    const SET = PORTRAIT ? 'p' : (NEED_PX <= 1350 ? 'm' : 'd');
+    // Portrait phones now see the WHOLE 16:9 scene, like desktop: the film is fitted to the
+    // screen width and the space above/below is filled with a soft, blurred copy of the frame.
+    const FIT_WIDTH = PORTRAIT;
+    const FIT_FILL = 1.0;      // 1 = full scene width; >1 crops the sides a little
+    const SCENE_Y = 0.47;      // vertical centre of the scene on portrait screens (fraction of height)
+    const SET = PORTRAIT ? 'w' : (NEED_PX <= 1350 ? 'm' : 'd');
     // AVIF frames are ~45% lighter than WebP at the same look; browsers without AVIF get WebP.
     const AVIF_OK = (() => {
         try {
@@ -49,7 +54,7 @@
     // (the largest 1920px set stays WebP; AVIF is used for the phone/laptop sets)
     const USE_AVIF = AVIF_OK && !PORTRAIT;
     // Only the light WebP set is published as a fallback for the rare browser without AVIF.
-    let IMAGE_FOLDER = PORTRAIT ? 'frames/p/' : (USE_AVIF ? `frames/a${SET}/` : `frames/m/`);
+    let IMAGE_FOLDER = PORTRAIT ? 'frames/w/' : (USE_AVIF ? `frames/a${SET}/` : `frames/m/`);
     let IMAGE_EXT = USE_AVIF ? '.avif' : '.webp';
     const WEBP_URL = (i) => `frames/m/f-${String(i).padStart(3, '0')}.webp`;
     const IMAGE_PREFIX = 'f-';
@@ -347,7 +352,7 @@
             .then((r) => r.blob())
             .then((blob) => {
                 const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
-                const s = Math.min(1, Math.max(tw / iw, th / ih) * (1 + CAMERA_ZOOM));
+                const s = Math.min(1, fitScale(iw, ih, tw, th) * (1 + CAMERA_ZOOM));
                 return (s < 0.95 && tw && th)
                     ? createImageBitmap(blob, { resizeWidth: Math.round(iw * s), resizeHeight: Math.round(ih * s), resizeQuality: 'medium' })
                     : createImageBitmap(blob);
@@ -371,12 +376,72 @@
         return 0;
     }
 
+    // cover on landscape screens; full-width "contain" on portrait phones
+    function fitScale(iw, ih, cw, ch) {
+        return FIT_WIDTH ? (cw / iw) * FIT_FILL : Math.max(cw / iw, ch / ih);
+    }
+
+    // Portrait backdrop: a tiny (96x54) canvas behind the film, pre-blurred and darkened,
+    // stretched to full screen by CSS. The GPU does the scaling, so it costs almost nothing.
+    let bdCv = null, bdCx = null, bdLast = -99;
+    function setupBackdrop() {
+        const wrap = canvasEl.parentElement;
+        if (!wrap) return;
+        wrap.classList.add('hero-fitw');
+        bdCv = document.createElement('canvas');
+        bdCv.width = 96; bdCv.height = 54;
+        bdCv.className = 'hero-backdrop';
+        bdCv.setAttribute('aria-hidden', 'true');
+        wrap.insertBefore(bdCv, canvasEl);
+        bdCx = bdCv.getContext('2d', { alpha: false });
+        if (bdCx) {
+            bdCx.imageSmoothingEnabled = true;
+            bdCx.imageSmoothingQuality = 'medium';
+            if ('filter' in bdCx) bdCx.filter = 'blur(4px)';
+        }
+    }
+    // Refreshed outside the paint frame (and at most ~6x a second): the blur hides small changes.
+    let bdTimer = 0, bdWant = null, bdWantIdx = 0;
+    function drawBackdrop(img, idx) {
+        if (!bdCx || Math.abs(idx - bdLast) < 3 * FRAME_STRIDE) return;
+        bdWant = img; bdWantIdx = idx;
+        if (bdTimer) return;
+        bdTimer = setTimeout(() => {
+            bdTimer = 0;
+            if (!bdWant) return;
+            bdLast = bdWantIdx;
+            bdCx.globalAlpha = 1;
+            // the decoded bitmap may have been released meanwhile: use whatever is current
+            const src = bitmaps.get(bdWantIdx) || frames[bdWantIdx];
+            try { if (src) bdCx.drawImage(src, -8, -5, 112, 64); } catch (e) { bdLast = -99; }
+            bdCx.fillStyle = 'rgba(12, 11, 10, 0.55)';
+            bdCx.fillRect(0, 0, 96, 54);
+            bdWant = null;
+        }, bdLast < 0 ? 0 : 160);
+    }
+    // soft top/bottom edges so the film melts into the backdrop (two thin strips, cheap)
+    let edgeTop = null, edgeBot = null, edgeH = 0;
+    function drawSceneEdges() {
+        const cw = canvasEl.width, ch = canvasEl.height;
+        const f = Math.max(6, Math.round(ch * 0.08));
+        if (f !== edgeH) {
+            edgeH = f;
+            edgeTop = ctx.createLinearGradient(0, 0, 0, f);
+            edgeTop.addColorStop(0, 'rgba(12,11,10,0.7)'); edgeTop.addColorStop(1, 'rgba(12,11,10,0)');
+            edgeBot = ctx.createLinearGradient(0, ch - f, 0, ch);
+            edgeBot.addColorStop(0, 'rgba(12,11,10,0)'); edgeBot.addColorStop(1, 'rgba(12,11,10,0.7)');
+        }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = edgeTop; ctx.fillRect(0, 0, cw, f);
+        ctx.fillStyle = edgeBot; ctx.fillRect(0, ch - f, cw, f);
+    }
+
     function drawCover(img, alpha, zoom, driftY) {
         const cw = canvasEl.width;
         const ch = canvasEl.height;
         const iw = img.naturalWidth || img.width || 1920;
         const ih = img.naturalHeight || img.height || 1080;
-        const scale = Math.max(cw / iw, ch / ih) * zoom;   // object-fit: cover + camera zoom
+        const scale = fitScale(iw, ih, cw, ch) * zoom;   // fit + camera zoom
         const dw = iw * scale;
         const dh = ih * scale;
         ctx.globalAlpha = alpha;
@@ -432,10 +497,12 @@
         lastDrawKey = key;
 
         window.__hbShown = lo;
+        if (FIT_WIDTH) drawBackdrop(paintable(lo), lo);
         drawCover(paintable(lo), 1, zoom, driftY);
         if (hi && hi !== lo && t > 0.004) {
             drawCover(paintable(hi), t, zoom, driftY);
         }
+        if (FIT_WIDTH) drawSceneEdges();
         ctx.globalAlpha = 1;
         lastDrawnImg = frames[t >= 0.5 && hi ? hi : lo];
     }
@@ -598,15 +665,16 @@
 
     function resizeCanvas() {
         const w = viewportEl.clientWidth;
-        const h = viewportEl.clientHeight;
+        // portrait: the film canvas is only the 16:9 scene strip (CSS places it)
+        const h = FIT_WIDTH ? Math.round(w * FIT_FILL * 9 / 16) : viewportEl.clientHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         let tw = Math.round(w * dpr);
         let th = Math.round(h * dpr);
         // Cap to what the frames can actually show (cover-fit + camera zoom); anything larger
         // just costs fill-rate on every frame without adding detail.
-        const srcW = ({ p: 750, m: 1280, d: 1600, h: 1920 })[SET] || 1920;
+        const srcW = ({ p: 750, w: 960, m: 1280, d: 1600, h: 1920 })[SET] || 1920;
         const srcH = SET === 'p' ? 900 : Math.round(srcW * 9 / 16);
-        const need = Math.max(tw / srcW, th / srcH);       // how much the frame is upscaled
+        const need = FIT_WIDTH ? (tw * FIT_FILL / srcW) : Math.max(tw / srcW, th / srcH);       // how much the frame is upscaled
         if (need > 1.12) { const f = 1.12 / need; tw = Math.round(tw * f); th = Math.round(th * f); }
         if (canvasEl.width !== tw || canvasEl.height !== th) {
             const grew = tw > canvasEl.width * 1.05 || th > canvasEl.height * 1.05;
@@ -616,6 +684,7 @@
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'medium';
             lastDrawnImg = null;
+            edgeH = 0;
         }
     }
 
@@ -802,6 +871,7 @@
 
         ctx = canvasEl.getContext('2d', { alpha: false });
         if (!ctx) return;
+        if (FIT_WIDTH) setupBackdrop();
 
         introOverlay = document.getElementById('heroIntroOverlay');
         hudOverlay = document.getElementById('timelineHudOverlay');

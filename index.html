@@ -261,7 +261,7 @@
     </script>
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=151">
+    <link rel="stylesheet" href="styles.css?v=154">
 
     <!-- First hero frame, fetched early for a fast first paint -->
     <script>
@@ -280,7 +280,7 @@
                     /Chrome\/(8[5-9]|9\d|1\d\d)|Firefox\/(9[3-9]|1\d\d)|Version\/(1[6-9]|2\d).*Safari/.test(navigator.userAgent);
                 var l = document.createElement('link');
                 l.rel = 'preload'; l.as = 'image'; l.setAttribute('fetchpriority', 'high');
-                l.href = portrait ? 'frames/p/f-001.webp' : (avif ? 'frames/a' + set + '/f-001.avif' : 'frames/m/f-001.webp');
+                l.href = portrait ? 'frames/w/f-001.webp' : (avif ? 'frames/a' + set + '/f-001.avif' : 'frames/m/f-001.webp');
                 document.head.appendChild(l);
             } catch (e) {}
         })();
@@ -1301,8 +1301,8 @@
     </button>
 
     <!-- JavaScript Files -->
-    <script src="timeline.js?v=151" defer></script>
-    <script src="app.js?v=151" defer></script>
-    <script src="turn.js?v=151" defer></script>
+    <script src="timeline.js?v=154" defer></script>
+    <script src="app.js?v=154" defer></script>
+    <script src="turn.js?v=154" defer></script>
 </body>
 </html>

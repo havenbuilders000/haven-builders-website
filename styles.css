@@ -12462,3 +12462,30 @@ html.intro-active .hero-v2 .ht-line .ht-inner::after{ animation-play-state:pause
   html body .hero-v2 .ht-line .ht-inner::after{ animation-duration:.55s !important; animation-delay:calc(0.35s + var(--i) * 0.09s) !important; }
 }
 
+
+/* ==========================================================================
+   HERO FILM ON PORTRAIT PHONES — whole 16:9 scene, like desktop
+   The film canvas becomes a 16:9 strip; a tiny pre-blurred copy of the frame,
+   stretched by the GPU, fills the screen around it.
+   ========================================================================== */
+.timeline-canvas-wrapper.hero-fitw { background-color: #0c0b0a; }
+.timeline-canvas-wrapper.hero-fitw .hero-backdrop {
+    position: absolute;
+    inset: -4%;
+    width: 108%;
+    height: 108%;
+    display: block;
+    z-index: 0;
+    transform: translateZ(0);
+    pointer-events: none;
+}
+.timeline-canvas-wrapper.hero-fitw .hero-sequence-canvas {
+    position: absolute;
+    left: 0;
+    top: 47%;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    z-index: 1;
+    transform: translateY(-50%) translateZ(0);
+}
