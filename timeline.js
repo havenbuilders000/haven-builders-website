@@ -40,10 +40,10 @@
     const PORTRAIT = (window.innerWidth / Math.max(1, window.innerHeight)) < 0.85 && window.innerWidth <= 1024;
     // Portrait phones now see the WHOLE 16:9 scene, like desktop: the film is fitted to the
     // screen width and the space above/below is filled with a soft, blurred copy of the frame.
-    const FIT_WIDTH = PORTRAIT;
+    const FIT_WIDTH = false;   // phones use the full-screen crop (set to PORTRAIT for the full-width scene)
     const FIT_FILL = 1.0;      // 1 = full scene width; >1 crops the sides a little
     const SCENE_Y = 0.47;      // vertical centre of the scene on portrait screens (fraction of height)
-    const SET = PORTRAIT ? 'w' : (NEED_PX <= 1350 ? 'm' : 'd');
+    const SET = PORTRAIT ? 'p' : (NEED_PX <= 1350 ? 'm' : 'd');
     // AVIF frames are ~45% lighter than WebP at the same look; browsers without AVIF get WebP.
     const AVIF_OK = (() => {
         try {
@@ -54,7 +54,7 @@
     // (the largest 1920px set stays WebP; AVIF is used for the phone/laptop sets)
     const USE_AVIF = AVIF_OK && !PORTRAIT;
     // Only the light WebP set is published as a fallback for the rare browser without AVIF.
-    let IMAGE_FOLDER = PORTRAIT ? 'frames/w/' : (USE_AVIF ? `frames/a${SET}/` : `frames/m/`);
+    let IMAGE_FOLDER = PORTRAIT ? 'frames/p/' : (USE_AVIF ? `frames/a${SET}/` : `frames/m/`);
     let IMAGE_EXT = USE_AVIF ? '.avif' : '.webp';
     const WEBP_URL = (i) => `frames/m/f-${String(i).padStart(3, '0')}.webp`;
     const IMAGE_PREFIX = 'f-';
